@@ -396,33 +396,55 @@
             }
         });
 
-        // --- ENVOI FINAL AU GOOGLE SHEETS ---
+       // --- ENVOI FINAL AU GOOGLE SHEETS (Saisie manuelle ou OCR) ---
         const sendBtn = document.getElementById('sendBtn');
         sendBtn.addEventListener('click', () => {
-            if(!inKm.value) { alert("Le kilométrage est obligatoire avant l'envoi."); return; }
+            // 1. On récupère les valeurs EXACTES écrites dans les cases à cet instant
+            const kmValue = inKm.value.trim();
+            const plateValue = inPlate.value.trim().toUpperCase();
+            const enginValue = typeEngin.value;
+            const driverValue = inDriver.value.trim();
 
+            // 2. Sécurités de base pour éviter d'envoyer une ligne vide
+            if (!driverValue) {
+                alert("⚠️ Attention : Le nom du conducteur est vide. Revenez à l'étape 1.");
+                goToStep(1);
+                return;
+            }
+            if (!kmValue) {
+                alert("⚠️ Erreur : Le kilométrage est obligatoire pour valider la fiche.");
+                return;
+            }
+
+            // 3. Verrouillage du bouton pour éviter les doubles clics
             sendBtn.disabled = true;
+            loaderKm.innerText = "Transmission des données saisies...";
+            loaderKm.style.display = 'block';
             
+            // 4. Envoi des données (qu'elles soient tapées à la main ou issues de l'OCR)
             fetch(WEB_APP_URL, {
                 method: "POST",
                 mode: "no-cors",
                 cache: "no-cache",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    conducteur: inDriver.value.trim(),
-                    typeEngin: typeEngin.value,
-                    plaque: inPlate.value.trim().toUpperCase() || "NON DETECTEE",
-                    kilometrage: inKm.value
+                    conducteur: driverValue,
+                    typeEngin: enginValue,
+                    plaque: plateValue || "MANUELLE / NON REMPLIE",
+                    kilometrage: kmValue
                 })
             }).then(() => {
-                alert("✅ Rapport transmis avec succès au Google Sheets !");
-                // Reset et retour à l'étape 1
+                loaderKm.style.display = 'none';
+                alert(`✅ Transmis avec succès !\n${enginValue} - Plaque : ${plateValue || 'N/A'} - KM : ${kmValue}`);
+                
+                // Réinitialisation des champs pour la prochaine saisie
                 inPlate.value = "";
                 inKm.value = "";
-                goToStep(1);
+                goToStep(1); // Retour au premier écran pour le prochain utilisateur
             }).catch(err => {
-                alert("Erreur de transmission.");
+                loaderKm.style.display = 'none';
                 sendBtn.disabled = false;
+                alert("❌ Erreur réseau lors de l'envoi. Vérifiez votre connexion.");
                 console.error(err);
             });
         });
