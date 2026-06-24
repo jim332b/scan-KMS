@@ -3,117 +3,280 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Scanner Compteur & Plaque</title>
+    <title>Console Scan Véhicules</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #f0f2f5; margin: 0; padding: 10px; touch-action: manipulation; }
-        .camera-container { position: relative; width: 100%; max-width: 500px; }
-        #video { width: 100%; border-radius: 12px; background: #000; display: block; }
+        :root {
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+        }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            background: var(--bg-color); 
+            margin: 0; 
+            padding: 10px; 
+            touch-action: manipulation;
+            color: var(--text-color);
+        }
+
+        h3 { margin: 10px 0; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 0.5px; color: #495057; }
+
+        .camera-container { 
+            position: relative; 
+            width: 100%; 
+            max-width: 500px; 
+            aspect-ratio: 4/3;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        #video { 
+            width: 100%; 
+            height: 100%;
+            object-fit: cover;
+            display: block; 
+        }
+
         #canvas { display: none; }
         
-        .zoom-controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 20px; }
-        .zoom-btn { background: white; color: black; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        /* Commandes de l'appareil photo */
+        .camera-overlay-btn {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .camera-overlay-btn:active { background: rgba(0, 0, 0, 0.9); }
         
-        .controls { margin-top: 15px; display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 500px; align-items: center; }
+        #zoomOut { bottom: 15px; left: 15px; }
+        #zoomIn { bottom: 15px; left: 70px; }
+        #switchCamera { bottom: 15px; right: 15px; font-size: 18px; }
         
-        /* Style du sélecteur d'engin */
-        .select-wrapper { width: 85%; display: flex; flex-direction: column; gap: 5px; }
-        label { font-size: 14px; font-weight: bold; color: #333; }
-        select { padding: 12px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc; background: white; width: 100%; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .form-container { 
+            margin-top: 15px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            width: 100%; 
+            max-width: 500px; 
+        }
         
-        button#captureBtn { padding: 15px; width: 85%; font-size: 18px; border: none; border-radius: 30px; cursor: pointer; background: #007bff; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-weight: bold; margin-top: 5px; }
-        button:disabled { background: #ccc; }
+        .input-group { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 4px; 
+            background: var(--card-bg);
+            padding: 10px 14px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        }
         
-        #result { margin-top: 20px; width: 90%; max-width: 450px; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; }
-        .res-label { font-size: 14px; color: #666; margin-bottom: 2px; }
-        .res-value { font-size: 20px; font-weight: bold; color: #333; margin-bottom: 10px; }
-        .loader { display: none; color: #666; margin-top: 10px; font-weight: bold; }
+        label { font-size: 12px; font-weight: 700; color: #6c757d; text-transform: uppercase; }
+        select, input { 
+            padding: 10px 0; 
+            font-size: 16px; 
+            border: none; 
+            background: transparent; 
+            width: 100%; 
+            color: var(--text-color);
+            font-weight: 600;
+        }
+        select:focus, input:focus { outline: none; }
+        
+        .row-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        button.main-btn { 
+            padding: 15px; 
+            width: 100%; 
+            font-size: 16px; 
+            border: none; 
+            border-radius: 25px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            text-transform: uppercase;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: opacity 0.2s;
+        }
+        button.main-btn:active { opacity: 0.8; }
+        
+        #captureBtn { background: var(--primary-color); color: white; }
+        #sendBtn { background: var(--success-color); color: white; }
+        button:disabled { background: #6c757d !important; opacity: 0.6; cursor: not-allowed; }
+        
+        .loader { 
+            display: none; 
+            color: #495057; 
+            font-size: 14px;
+            font-weight: bold; 
+            text-align: center;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
     </style>
 </head>
 <body>
 
-    <h3>Scanner Opérationnel Véhicules</h3>
+    <h3>Console Suivi Véhicules</h3>
     
     <div class="camera-container">
         <video id="video" autoplay playsinline></video>
         <canvas id="canvas"></canvas>
         
-        <div class="zoom-controls">
-            <button class="zoom-btn" id="zoomOut">−</button>
-            <button class="zoom-btn" id="zoomIn">+</button>
-        </div>
+        <button class="camera-overlay-btn" id="zoomOut">−</button>
+        <button class="camera-overlay-btn" id="zoomIn">+</button>
+        <button class="camera-overlay-btn" id="switchCamera">🔄</button>
     </div>
 
-    <div class="controls">
-        <div class="select-wrapper">
-            <label for="typeEngin">Type d'engin :</label>
+    <div class="form-container">
+        
+        <div class="input-group">
+            <label for="typeEngin">Type d'engin</label>
             <select id="typeEngin">
                 <option value="VLS">VLS (Véhicule de Liaison Hors Route)</option>
                 <option value="VLEM">VLEM (Véhicule Liaison Équipe Médicale)</option>
                 <option value="FGPSR">FGPSR (Fourgon Grande Puissance Secours Routier)</option>
-                <option value="VSAV">VSAV (Véhicule de Secours et d'Assistance aux Victimes)</option>
+                <option value="VSAV">VSAV (Véhicule de Secours aux Victimes)</option>
                 <option value="FPT">FPT (Fourgon Pompe Tonne)</option>
                 <option value="CCF">CCF (Camion Citerne Feux de Forêt)</option>
-                <option value="Autre">Autre / Inconnu</option>
+                <option value="Autre">Autre / Hors-rang</option>
             </select>
         </div>
 
-        <button id="captureBtn">📷 Scanner & Enregistrer</button>
-        <div id="loader" class="loader">Analyse de la photo...</div>
-    </div>
+        <div class="row-inputs">
+            <div class="input-group">
+                <label for="inPlate">Plaque Immat.</label>
+                <input type="text" id="inPlate" placeholder="Ex: AA-123-AA">
+            </div>
+            <div class="input-group">
+                <label for="inKm">Kilométrage</label>
+                <input type="number" id="inKm" placeholder="Ex: 142500" inputmode="numeric">
+            </div>
+        </div>
 
-    <div id="result">
-        <div class="res-label">Plaque détectée :</div>
-        <div class="res-value" id="valPlate">---</div>
-        <div class="res-label">Kilométrage :</div>
-        <div class="res-value" id="valKm">--- KM</div>
+        <div class="btn-actions">
+            <button id="captureBtn" class="main-btn">📷 Lancer la lecture OCR</button>
+            <div id="loader" class="loader">Analyse de l'image en cours...</div>
+            <button id="sendBtn" class="main-btn">💾 Valider et Envoyer au Sheets</button>
+        </div>
     </div>
 
     <script>
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         const captureBtn = document.getElementById('captureBtn');
+        const sendBtn = document.getElementById('sendBtn');
         const loader = document.getElementById('loader');
-        const valPlate = document.getElementById('valPlate');
-        const valKm = document.getElementById('valKm');
+        const inPlate = document.getElementById('inPlate');
+        const inKm = document.getElementById('inKm');
+        const typeEnginSelect = document.getElementById('typeEngin');
         const zoomInBtn = document.getElementById('zoomIn');
         const zoomOutBtn = document.getElementById('zoomOut');
-        const typeEnginSelect = document.getElementById('typeEngin');
+        const switchCamBtn = document.getElementById('switchCamera');
 
-        // URL de votre Google Apps Script (À REMPLACER)
+        // ==========================================
+        // CONFIGURATION : METTRE VOTRE URL DE DEPLOYEMENT ICI
+        // ==========================================
         const WEB_APP_URL = "VOTRE_URL_GOOGLE_APPS_SCRIPT";
 
         let videoStream = null;
         let videoTrack = null;
         let zoomCapabilities = null;
         let currentZoom = 1;
+        let useFrontCamera = false; // Par défaut caméra arrière
 
+        // 1. Initialisation et démarrage de la caméra
         async function startCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+
+            const facingModeCondition = useFrontCamera ? "user" : "environment";
+            const constraints = { 
+                video: { facingMode: facingModeCondition }, 
+                audio: false 
+            };
+
             try {
-                const constraints = { video: { facingMode: { exact: "environment" } }, audio: false };
-                stream = await navigator.mediaDevices.getUserMedia(constraints).catch(() => {
-                    return navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                });
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 video.srcObject = stream;
                 videoStream = stream;
                 videoTrack = stream.getVideoTracks()[0];
-                video.onloadedmetadata = () => { checkZoomCapabilities(); };
+                
+                video.onloadedmetadata = () => { 
+                    checkZoomCapabilities(); 
+                };
             } catch (err) {
-                console.error("Erreur caméra: ", err);
-                alert("Impossible d'accéder à la caméra.");
+                console.error("Erreur d'accès à la caméra: ", err);
+                // Repli si le mode strict échoue
+                if(!useFrontCamera) {
+                    fallbackCamera();
+                }
             }
         }
 
+        async function fallbackCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                videoStream = stream;
+                videoTrack = stream.getVideoTracks()[0];
+            } catch(e) {
+                alert("Impossible d'accéder aux caméras. Vérifiez le HTTPS.");
+            }
+        }
+
+        // Commutateur de caméra arrière/avant (ou objectif secondaire)
+        switchCamBtn.addEventListener('click', () => {
+            useFrontCamera = !useFrontCamera;
+            startCamera();
+        });
+
+        // 2. Gestion du Zoom Numérique
         function checkZoomCapabilities() {
             if (!videoTrack || !('getCapabilities' in videoTrack)) { hideZoomControls(); return; }
             const capabilities = videoTrack.getCapabilities();
             if (!capabilities.zoom) { hideZoomControls(); return; }
+            
             zoomCapabilities = capabilities.zoom;
             currentZoom = zoomCapabilities.min;
             updateZoomButtons();
         }
 
-        function hideZoomControls() { zoomInBtn.style.display = 'none'; zoomOutBtn.style.display = 'none'; }
+        function hideZoomControls() { 
+            zoomInBtn.style.display = 'none'; 
+            zoomOutBtn.style.display = 'none'; 
+        }
 
         function applyZoom(direction) {
             if (!zoomCapabilities || !videoTrack) return;
@@ -131,6 +294,7 @@
         zoomInBtn.addEventListener('click', () => applyZoom('in'));
         zoomOutBtn.addEventListener('click', () => applyZoom('out'));
 
+        // 3. Capture d'image et traitement OCR (Tesseract)
         captureBtn.addEventListener('click', async () => {
             if (!videoStream) return;
 
@@ -141,8 +305,7 @@
 
             loader.style.display = 'block';
             captureBtn.disabled = true;
-            valPlate.innerText = "Analyse...";
-            valKm.innerText = "Analyse...";
+            sendBtn.disabled = true;
 
             try {
                 const { data: { text } } = await Tesseract.recognize(
@@ -151,58 +314,76 @@
                     { logger: m => console.log(m) }
                 );
 
-                const kmMatches = text.match(/\d{4,7}/g);
-                let detectedKm = kmMatches ? kmMatches[0] : null;
+                // --- Extraction par Expressions Régulières ---
+                // Kilométrage : cherche une suite de 4 à 7 chiffres isolée
+                const kmMatches = text.match(/\b\d{4,7}\b/g) || text.match(/\d{4,7}/g);
+                let detectedKm = kmMatches ? kmMatches[0] : "";
 
+                // Plaque SIV française : AA-123-AA
                 const plateRegex = /[A-Z]{2}[- ]?\d{3}[- ]?[A-Z]{2}/i; 
                 const plateMatches = text.match(plateRegex);
-                let detectedPlate = plateMatches ? plateMatches[0].toUpperCase().replace(/[ ]/g, '-') : null;
+                let detectedPlate = plateMatches ? plateMatches[0].toUpperCase().replace(/[ ]/g, '-') : "";
 
-                valPlate.innerText = detectedPlate || "Non détectée";
-                valKm.innerText = detectedKm ? (detectedKm + " KM") : "Non détecté";
+                // Remplissage des champs (l'utilisateur peut ainsi corriger si besoin)
+                if (detectedKm) inKm.value = detectedKm;
+                if (detectedPlate) inPlate.value = detectedPlate;
 
-                // Récupération de la valeur sélectionnée dans le menu déroulant
-                const selectedEngin = typeEnginSelect.value;
-
-                if (detectedKm && detectedPlate) {
-                    sendToGoogleSheets(detectedKm, detectedPlate, selectedEngin);
-                } else if (detectedKm || detectedPlate) {
-                    // Envoi partiel si au moins une donnée est lue
-                    if(confirm("Lecture incomplète. Voulez-vous quand même envoyer les données récoltées ?")) {
-                        sendToGoogleSheets(detectedKm || "À vérifier", detectedPlate || "À vérifier", selectedEngin);
-                    }
-                } else {
-                    alert("Lecture impossible. Ajustez le zoom ou la lumière.");
+                if (!detectedKm && !detectedPlate) {
+                    alert("⚠️ Aucune donnée claire n'a été lue. Vous pouvez remplir les champs manuellement.");
                 }
 
             } catch (e) {
-                alert("Erreur OCR : " + e);
+                alert("Erreur technique lors de la lecture : " + e);
             } finally {
                 loader.style.display = 'none';
                 captureBtn.disabled = false;
+                sendBtn.disabled = false;
             }
         });
 
-        function sendToGoogleSheets(km, plate, engin) {
-            loader.innerText = "Enregistrement dans Sheets...";
+        // 4. Envoi final des données validées au Google Sheets
+        sendBtn.addEventListener('click', () => {
+            const kmValue = inKm.value.trim();
+            const plateValue = inPlate.value.trim().toUpperCase();
+            const enginValue = typeEnginSelect.value;
+
+            if (!kmValue) {
+                alert("Veuillez renseigner ou scanner un kilométrage valide.");
+                return;
+            }
+
+            loader.innerText = "Transmission des données à la base...";
             loader.style.display = 'block';
+            sendBtn.disabled = true;
 
             fetch(WEB_APP_URL, {
                 method: "POST",
                 mode: "no-cors",
                 cache: "no-cache",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ plaque: plate, kilometrage: km, typeEngin: engin })
+                body: JSON.stringify({ 
+                    plaque: plateValue || "À COMPLÉTER", 
+                    kilometrage: kmValue, 
+                    typeEngin: enginValue 
+                })
             }).then(() => {
                 loader.style.display = 'none';
-                alert(`✅ ${engin} (${plate}) enregistré à ${km} KM !`);
+                loader.innerText = "Analyse de l'image en cours...";
+                sendBtn.disabled = false;
+                alert(`✅ Transmis avec succès !\n${enginValue} - Plaque : ${plateValue || 'N/A'} - KM : ${kmValue}`);
+                
+                // Réinitialisation optionnelle des champs pour la prochaine saisie
+                inKm.value = "";
+                inPlate.value = "";
             }).catch(err => {
                 loader.style.display = 'none';
-                alert("Erreur d'envoi.");
+                sendBtn.disabled = false;
+                alert("❌ Erreur réseau lors de l'envoi.");
                 console.error(err);
             });
-        }
+        });
 
+        // Démarrage de la caméra au chargement initial
         startCamera();
     </script>
 </body>
