@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Console Scan Véhicules</title>
+    <title>Saisie & Scan Véhicule</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         :root {
@@ -21,118 +21,113 @@
             align-items: center; 
             background: var(--bg-color); 
             margin: 0; 
-            padding: 10px; 
+            padding: 15px; 
             touch-action: manipulation;
             color: var(--text-color);
         }
 
-        h3 { margin: 10px 0; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 0.5px; color: #495057; }
+        h3 { margin: 10px 0 20px 0; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 0.5px; color: #495057; text-align: center; }
+
+        .step-card {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 450px;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            display: none; /* Géré par JS */
+            box-sizing: border-box;
+        }
+
+        .step-card.active { display: block; }
+
+        .progress-bar {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 450px;
+            margin-bottom: 20px;
+        }
+
+        .progress-dot {
+            width: 20%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+        }
+
+        .progress-dot.active { background: var(--primary-color); }
+        .progress-dot.completed { background: var(--success-color); }
 
         .camera-container { 
             position: relative; 
             width: 100%; 
-            max-width: 500px; 
             aspect-ratio: 4/3;
             background: #000;
-            border-radius: 12px;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-bottom: 15px;
         }
 
-        #video { 
-            width: 100%; 
-            height: 100%;
-            object-fit: cover;
-            display: block; 
-        }
-
+        #video { width: 100%; height: 100%; object-fit: cover; }
         #canvas { display: none; }
         
-        /* Commandes de l'appareil photo */
         .camera-overlay-btn {
             position: absolute;
             background: rgba(0, 0, 0, 0.6);
             color: white;
             border: none;
             border-radius: 50%;
-            width: 44px;
-            height: 44px;
-            font-size: 20px;
-            font-weight: bold;
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.2s;
-        }
-        .camera-overlay-btn:active { background: rgba(0, 0, 0, 0.9); }
-        
-        #zoomOut { bottom: 15px; left: 15px; }
-        #zoomIn { bottom: 15px; left: 70px; }
-        #switchCamera { bottom: 15px; right: 15px; font-size: 18px; }
-        
-        .form-container { 
-            margin-top: 15px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 12px; 
-            width: 100%; 
-            max-width: 500px; 
         }
         
+        .z-out { bottom: 10px; left: 10px; }
+        .z-in { bottom: 10px; left: 60px; }
+
         .input-group { 
             display: flex; 
             flex-direction: column; 
-            gap: 4px; 
-            background: var(--card-bg);
-            padding: 10px 14px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            gap: 6px; 
+            margin-bottom: 20px;
         }
         
-        label { font-size: 12px; font-weight: 700; color: #6c757d; text-transform: uppercase; }
+        label { font-size: 11px; font-weight: 700; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; }
         select, input { 
-            padding: 10px 0; 
+            padding: 12px; 
             font-size: 16px; 
-            border: none; 
-            background: transparent; 
+            border: 1px solid #ced4da; 
+            border-radius: 6px;
+            background: #fff; 
             width: 100%; 
             color: var(--text-color);
-            font-weight: 600;
+            box-sizing: border-box;
         }
-        select:focus, input:focus { outline: none; }
+        select:focus, input:focus { outline: none; border-color: var(--primary-color); }
         
-        .row-inputs {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .btn-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            align-items: center;
-            margin-top: 5px;
-        }
-
-        button.main-btn { 
-            padding: 15px; 
+        button.nav-btn { 
+            padding: 14px; 
             width: 100%; 
             font-size: 16px; 
             border: none; 
-            border-radius: 25px; 
+            border-radius: 8px; 
             cursor: pointer; 
             font-weight: bold; 
             text-transform: uppercase;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: opacity 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 5px;
         }
-        button.main-btn:active { opacity: 0.8; }
         
-        #captureBtn { background: var(--primary-color); color: white; }
-        #sendBtn { background: var(--success-color); color: white; }
-        button:disabled { background: #6c757d !important; opacity: 0.6; cursor: not-allowed; }
+        .btn-next { background: var(--primary-color); color: white; }
+        .btn-scan { background: #6f42c1; color: white; }
+        .btn-submit { background: var(--success-color); color: white; }
+        .btn-back { background: #6c757d; color: white; margin-top: 10px; }
+        button:disabled { background: #6c757d !important; opacity: 0.5; }
         
         .loader { 
             display: none; 
@@ -140,26 +135,40 @@
             font-size: 14px;
             font-weight: bold; 
             text-align: center;
-            animation: pulse 1.5s infinite;
+            margin: 10px 0;
         }
-        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+
+        .summary-box {
+            background: #f8f9fa;
+            border-left: 4px solid var(--primary-color);
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
 
-    <h3>Console Suivi Véhicules</h3>
+    <h3>Suivi de Parc Véhicules</h3>
     
-    <div class="camera-container">
-        <video id="video" autoplay playsinline></video>
-        <canvas id="canvas"></canvas>
-        
-        <button class="camera-overlay-btn" id="zoomOut">−</button>
-        <button class="camera-overlay-btn" id="zoomIn">+</button>
-        <button class="camera-overlay-btn" id="switchCamera">🔄</button>
+    <div class="progress-bar">
+        <div class="progress-dot" id="dot1"></div>
+        <div class="progress-dot" id="dot2"></div>
+        <div class="progress-dot" id="dot3"></div>
+        <div class="progress-dot" id="dot4"></div>
     </div>
 
-    <div class="form-container">
-        
+    <div class="step-card" id="step1">
+        <div class="input-group">
+            <label for="inDriver">Identité du Conducteur</label>
+            <input type="text" id="inDriver" placeholder="Grade et Nom (ex: CCH DUPONT)">
+        </div>
+        <button type="button" class="nav-btn btn-next" id="toStep2">Continuer ➔</button>
+    </div>
+
+    <div class="step-card" id="step2">
         <div class="input-group">
             <label for="typeEngin">Type d'engin</label>
             <select id="typeEngin">
@@ -172,219 +181,254 @@
                 <option value="Autre">Autre / Hors-rang</option>
             </select>
         </div>
-
-        <div class="row-inputs">
-            <div class="input-group">
-                <label for="inPlate">Plaque Immat.</label>
-                <input type="text" id="inPlate" placeholder="Ex: AA-123-AA">
-            </div>
-            <div class="input-group">
-                <label for="inKm">Kilométrage</label>
-                <input type="number" id="inKm" placeholder="Ex: 142500" inputmode="numeric">
-            </div>
-        </div>
-
-        <div class="btn-actions">
-            <button id="captureBtn" class="main-btn">📷 Lancer la lecture OCR</button>
-            <div id="loader" class="loader">Analyse de l'image en cours...</div>
-            <button id="sendBtn" class="main-btn">💾 Valider et Envoyer au Sheets</button>
-        </div>
+        <button type="button" class="nav-btn btn-next" id="toStep3">Sélectionner ➔</button>
+        <button type="button" class="nav-btn btn-back" onclick="goToStep(1)">⬅ Retour</button>
     </div>
 
+    <div class="step-card" id="step3">
+        <label>Étape 3 : Scannez la plaque d'immatriculation</label>
+        <div class="camera-container">
+            <video id="videoPlate" autoplay playsinline></video>
+            <button class="camera-overlay-btn z-out" id="zOutPlate">−</button>
+            <button class="camera-overlay-btn z-in" id="zInPlate">+</button>
+        </div>
+        
+        <div class="input-group">
+            <label for="inPlate">Résultat Plaque (Modifiable si erreur)</label>
+            <input type="text" id="inPlate" placeholder="AA-123-AA">
+        </div>
+
+        <button type="button" class="nav-btn btn-scan" id="btnScanPlate">📷 Capturer & Analyser la plaque</button>
+        <div id="loaderPlate" class="loader">Analyse de la plaque...</div>
+        <button type="button" class="nav-btn btn-next" id="toStep4" style="margin-top:15px;">Étape suivante ➔</button>
+        <button type="button" class="nav-btn btn-back" id="backToStep2">⬅ Retour</button>
+    </div>
+
+    <div class="step-card" id="step4">
+        <label>Étape 4 : Scannez le compteur kilométrique</label>
+        <div class="camera-container">
+            <video id="videoKm" autoplay playsinline></video>
+            <button class="camera-overlay-btn z-out" id="zOutKm">−</button>
+            <button class="camera-overlay-btn z-in" id="zInKm">+</button>
+        </div>
+
+        <div class="input-group">
+            <label for="inKm">Kilométrage (Modifiable si erreur)</label>
+            <input type="number" id="inKm" placeholder="Ex: 84320" inputmode="numeric">
+        </div>
+
+        <button type="button" class="nav-btn btn-scan" id="btnScanKm">📷 Capturer & Analyser les KM</button>
+        <div id="loaderKm" class="loader">Analyse du compteur...</div>
+        
+        <div class="summary-box" id="summaryBox"></div>
+
+        <button type="button" class="nav-btn btn-submit" id="sendBtn">💾 Transmettre la fiche</button>
+        <button type="button" class="nav-btn btn-back" id="backToStep3">⬅ Retour</button>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
     <script>
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const captureBtn = document.getElementById('captureBtn');
-        const sendBtn = document.getElementById('sendBtn');
-        const loader = document.getElementById('loader');
+        // --- Configuration URL Google Sheets ---
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz3gQVCXXZAOB9XzHWaiG3gad9vOWWOuTRIx4p6SiFkPVm36ao7S4eOBTmiuqWLJJlS/exec";
+
+        // Navigation & UI Elements
+        const cards = [document.getElementById('step1'), document.getElementById('step2'), document.getElementById('step3'), document.getElementById('step4')];
+        const dots = [document.getElementById('dot1'), document.getElementById('dot2'), document.getElementById('dot3'), document.getElementById('dot4')];
+        
+        // Data Inputs
+        const inDriver = document.getElementById('inDriver');
+        const typeEngin = document.getElementById('typeEngin');
         const inPlate = document.getElementById('inPlate');
         const inKm = document.getElementById('inKm');
-        const typeEnginSelect = document.getElementById('typeEngin');
-        const zoomInBtn = document.getElementById('zoomIn');
-        const zoomOutBtn = document.getElementById('zoomOut');
-        const switchCamBtn = document.getElementById('switchCamera');
+        const summaryBox = document.getElementById('summaryBox');
 
-        // ==========================================
-        // CONFIGURATION : METTRE VOTRE URL DE DEPLOYEMENT ICI
-        // ==========================================
-        const WEB_APP_URL = "https://docs.google.com/spreadsheets/d/1Y3RthaZ7P-P3srWMGvnNbL7pp0Y4KKWsxs8Zrqqdn8E/edit?usp=sharing";
-
-        let videoStream = null;
-        let videoTrack = null;
+        // Caméras et Flux
+        let currentStream = null;
+        let currentTrack = null;
         let zoomCapabilities = null;
         let currentZoom = 1;
-        let useFrontCamera = false; // Par défaut caméra arrière
 
-        // 1. Initialisation et démarrage de la caméra
-        async function startCamera() {
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
+        // Gestion du parcours pas à pas
+        function goToStep(stepNumber) {
+            cards.forEach((card, index) => {
+                card.classList.toggle('active', index === (stepNumber - 1));
+                dots[index].classList.toggle('active', index === (stepNumber - 1));
+                dots[index].classList.toggle('completed', index < (stepNumber - 1));
+            });
+
+            // Arrêt des flux caméras précédents s'ils existent
+            stopCamera();
+
+            // Allumage sélectif de la caméra selon l'étape
+            if (stepNumber === 3) {
+                startCamera(document.getElementById('videoPlate'), document.getElementById('zInPlate'), document.getElementById('zOutPlate'));
+            } else if (stepNumber === 4) {
+                startCamera(document.getElementById('videoKm'), document.getElementById('zInKm'), document.getElementById('zOutKm'));
+                // Maj du résumé final pour vérification avant envoi
+                summaryBox.innerHTML = `<strong>Récapitulatif :</strong><br>👤 Conducteur : ${inDriver.value}<br>🚒 Engin : ${typeEngin.value}<br>🆔 Plaque : ${inPlate.value || 'Non renseignée'}`;
             }
+        }
 
-            const facingModeCondition = useFrontCamera ? "user" : "environment";
-            const constraints = { 
-                video: { facingMode: facingModeCondition }, 
-                audio: false 
-            };
-
+        // Démarrage dynamique de la caméra arrière
+        async function startCamera(videoElement, zInBtn, zOutBtn) {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                video.srcObject = stream;
-                videoStream = stream;
-                videoTrack = stream.getVideoTracks()[0];
-                
-                video.onloadedmetadata = () => { 
-                    checkZoomCapabilities(); 
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { exact: "environment" } },
+                    audio: false
+                }).catch(() => {
+                    return navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                });
+
+                videoElement.srcObject = stream;
+                currentStream = stream;
+                currentTrack = stream.getVideoTracks()[0];
+
+                videoElement.onloadedmetadata = () => {
+                    setupZoom(zInBtn, zOutBtn);
                 };
             } catch (err) {
-                console.error("Erreur d'accès à la caméra: ", err);
-                // Repli si le mode strict échoue
-                if(!useFrontCamera) {
-                    fallbackCamera();
-                }
+                console.error("Erreur d'accès caméra :", err);
             }
         }
 
-        async function fallbackCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                video.srcObject = stream;
-                videoStream = stream;
-                videoTrack = stream.getVideoTracks()[0];
-            } catch(e) {
-                alert("Impossible d'accéder aux caméras. Vérifiez le HTTPS.");
+        function stopCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+                currentTrack = null;
             }
         }
 
-        // Commutateur de caméra arrière/avant (ou objectif secondaire)
-        switchCamBtn.addEventListener('click', () => {
-            useFrontCamera = !useFrontCamera;
-            startCamera();
-        });
+        // Zoom numérique standardisé
+        function setupZoom(zInBtn, zOutBtn) {
+            if (!currentTrack || !('getCapabilities' in currentTrack)) { zInBtn.style.display='none'; zOutBtn.style.display='none'; return; }
+            const caps = currentTrack.getCapabilities();
+            if (!caps.zoom) { zInBtn.style.display='none'; zOutBtn.style.display='none'; return; }
 
-        // 2. Gestion du Zoom Numérique
-        function checkZoomCapabilities() {
-            if (!videoTrack || !('getCapabilities' in videoTrack)) { hideZoomControls(); return; }
-            const capabilities = videoTrack.getCapabilities();
-            if (!capabilities.zoom) { hideZoomControls(); return; }
-            
-            zoomCapabilities = capabilities.zoom;
-            currentZoom = zoomCapabilities.min;
-            updateZoomButtons();
+            zoomCapabilities = caps.zoom;
+            currentZoom = caps.zoom.min;
+
+            const triggerZoom = (direction) => {
+                const step = (zoomCapabilities.max - zoomCapabilities.min) / 10;
+                currentZoom = direction === 'in' ? Math.min(zoomCapabilities.max, currentZoom + step) : Math.max(zoomCapabilities.min, currentZoom - step);
+                currentTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] });
+            };
+
+            zInBtn.onclick = () => triggerZoom('in');
+            zOutBtn.onclick = () => triggerZoom('out');
         }
 
-        function hideZoomControls() { 
-            zoomInBtn.style.display = 'none'; 
-            zoomOutBtn.style.display = 'none'; 
-        }
-
-        function applyZoom(direction) {
-            if (!zoomCapabilities || !videoTrack) return;
-            const step = (zoomCapabilities.max - zoomCapabilities.min) / 10;
-            currentZoom = direction === 'in' ? Math.min(zoomCapabilities.max, currentZoom + step) : Math.max(zoomCapabilities.min, currentZoom - step);
-            videoTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] }).catch(e => console.error(e));
-            updateZoomButtons();
-        }
-
-        function updateZoomButtons() {
-            zoomInBtn.disabled = (currentZoom >= zoomCapabilities.max);
-            zoomOutBtn.disabled = (currentZoom <= zoomCapabilities.min);
-        }
-
-        zoomInBtn.addEventListener('click', () => applyZoom('in'));
-        zoomOutBtn.addEventListener('click', () => applyZoom('out'));
-
-        // 3. Capture d'image et traitement OCR (Tesseract)
-        captureBtn.addEventListener('click', async () => {
-            if (!videoStream) return;
-
+        // --- Logique de capture de l'image commune ---
+        function captureSnapshot(videoEl) {
+            const canvas = document.getElementById('canvas');
             const context = canvas.getContext('2d');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.width = videoEl.videoWidth;
+            canvas.height = videoEl.videoHeight;
+            context.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL('image/jpeg');
+        }
 
-            loader.style.display = 'block';
-            captureBtn.disabled = true;
-            sendBtn.disabled = true;
+        // Événements de navigation de base
+        document.getElementById('toStep2').addEventListener('click', () => {
+            if(!inDriver.value.trim()) { alert("Veuillez renseigner le nom du conducteur."); return; }
+            goToStep(2);
+        });
+        document.getElementById('toStep3').addEventListener('click', () => goToStep(3));
+        document.getElementById('backToStep2').addEventListener('click', () => goToStep(2));
+        document.getElementById('toStep4').addEventListener('click', () => goToStep(4));
+        document.getElementById('backToStep3').addEventListener('click', () => goToStep(3));
+
+        // --- TRAITEMENT ET OCR ÉTAPE 3 : LA PLAQUE ---
+        const btnScanPlate = document.getElementById('btnScanPlate');
+        const loaderPlate = document.getElementById('loaderPlate');
+        
+        btnScanPlate.addEventListener('click', async () => {
+            const videoPlate = document.getElementById('videoPlate');
+            const imageBase64 = captureSnapshot(videoPlate);
+            
+            loaderPlate.style.display = 'block';
+            btnScanPlate.disabled = true;
 
             try {
-                const { data: { text } } = await Tesseract.recognize(
-                    canvas.toDataURL('image/jpeg'),
-                    'fra+eng',
-                    { logger: m => console.log(m) }
-                );
-
-                // --- Extraction par Expressions Régulières ---
-                // Kilométrage : cherche une suite de 4 à 7 chiffres isolée
-                const kmMatches = text.match(/\b\d{4,7}\b/g) || text.match(/\d{4,7}/g);
-                let detectedKm = kmMatches ? kmMatches[0] : "";
-
-                // Plaque SIV française : AA-123-AA
+                const { data: { text } } = await Tesseract.recognize(imageBase64, 'fra+eng');
                 const plateRegex = /[A-Z]{2}[- ]?\d{3}[- ]?[A-Z]{2}/i; 
-                const plateMatches = text.match(plateRegex);
-                let detectedPlate = plateMatches ? plateMatches[0].toUpperCase().replace(/[ ]/g, '-') : "";
-
-                // Remplissage des champs (l'utilisateur peut ainsi corriger si besoin)
-                if (detectedKm) inKm.value = detectedKm;
-                if (detectedPlate) inPlate.value = detectedPlate;
-
-                if (!detectedKm && !detectedPlate) {
-                    alert("⚠️ Aucune donnée claire n'a été lue. Vous pouvez remplir les champs manuellement.");
+                const match = text.match(plateRegex);
+                
+                if(match) {
+                    inPlate.value = match[0].toUpperCase().replace(/[ ]/g, '-');
+                } else {
+                    alert("Plaque non détectée automatiquement. Ajustez le cadrage ou écrivez-la directement.");
                 }
-
-            } catch (e) {
-                alert("Erreur technique lors de la lecture : " + e);
+            } catch(e) {
+                console.error(e);
             } finally {
-                loader.style.display = 'none';
-                captureBtn.disabled = false;
-                sendBtn.disabled = false;
+                loaderPlate.style.display = 'none';
+                btnScanPlate.disabled = false;
             }
         });
 
-        // 4. Envoi final des données validées au Google Sheets
-        sendBtn.addEventListener('click', () => {
-            const kmValue = inKm.value.trim();
-            const plateValue = inPlate.value.trim().toUpperCase();
-            const enginValue = typeEnginSelect.value;
+        // --- TRAITEMENT ET OCR ÉTAPE 4 : LE COMPTEUR ---
+        const btnScanKm = document.getElementById('btnScanKm');
+        const loaderKm = document.getElementById('loaderKm');
 
-            if (!kmValue) {
-                alert("Veuillez renseigner ou scanner un kilométrage valide.");
-                return;
+        btnScanKm.addEventListener('click', async () => {
+            const videoKm = document.getElementById('videoKm');
+            const imageBase64 = captureSnapshot(videoKm);
+            
+            loaderKm.style.display = 'block';
+            btnScanKm.disabled = true;
+
+            try {
+                const { data: { text } } = await Tesseract.recognize(imageBase64, 'eng');
+                const kmMatches = text.match(/\b\d{4,7}\b/g) || text.match(/\d{4,7}\b/g);
+                
+                if(kmMatches) {
+                    inKm.value = kmMatches[0];
+                } else {
+                    alert("Chiffres du compteur non détectés. Saisissez-les manuellement.");
+                }
+            } catch(e) {
+                console.error(e);
+            } finally {
+                loaderKm.style.display = 'none';
+                btnScanKm.disabled = false;
             }
+        });
 
-            loader.innerText = "Transmission des données à la base...";
-            loader.style.display = 'block';
+        // --- ENVOI FINAL AU GOOGLE SHEETS ---
+        const sendBtn = document.getElementById('sendBtn');
+        sendBtn.addEventListener('click', () => {
+            if(!inKm.value) { alert("Le kilométrage est obligatoire avant l'envoi."); return; }
+
             sendBtn.disabled = true;
-
+            
             fetch(WEB_APP_URL, {
                 method: "POST",
                 mode: "no-cors",
                 cache: "no-cache",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    plaque: plateValue || "À COMPLÉTER", 
-                    kilometrage: kmValue, 
-                    typeEngin: enginValue 
+                body: JSON.stringify({
+                    conducteur: inDriver.value.trim(),
+                    typeEngin: typeEngin.value,
+                    plaque: inPlate.value.trim().toUpperCase() || "NON DETECTEE",
+                    kilometrage: inKm.value
                 })
             }).then(() => {
-                loader.style.display = 'none';
-                loader.innerText = "Analyse de l'image en cours...";
-                sendBtn.disabled = false;
-                alert(`✅ Transmis avec succès !\n${enginValue} - Plaque : ${plateValue || 'N/A'} - KM : ${kmValue}`);
-                
-                // Réinitialisation optionnelle des champs pour la prochaine saisie
-                inKm.value = "";
+                alert("✅ Rapport transmis avec succès au Google Sheets !");
+                // Reset et retour à l'étape 1
                 inPlate.value = "";
+                inKm.value = "";
+                goToStep(1);
             }).catch(err => {
-                loader.style.display = 'none';
+                alert("Erreur de transmission.");
                 sendBtn.disabled = false;
-                alert("❌ Erreur réseau lors de l'envoi.");
                 console.error(err);
             });
         });
 
-        // Démarrage de la caméra au chargement initial
-        startCamera();
+        // Lancement au premier écran
+        goToStep(1);
     </script>
 </body>
 </html>
